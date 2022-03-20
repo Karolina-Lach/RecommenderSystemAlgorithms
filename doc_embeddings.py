@@ -76,7 +76,7 @@ def create_doc2vec_embeddings(df, col_name, ids_col_name='RecipeId', vector_size
     window_size = get_average_number_of_words(df[col_name])
     corpus = [TaggedDocument(row[1], [row[0]]) for index, row in df.iterrows()]
     doc2vec_model = Doc2Vec(corpus, vector_size=vector_size, window=2, min_count=1, workers=4)
-    return doc2vec_model
+    return doc2vec_model, corpus
 
 
 def tsne_plot(word_labels, categories_dict, model=None, vectors_dict=None):
@@ -114,7 +114,6 @@ def tsne_plot(word_labels, categories_dict, model=None, vectors_dict=None):
 #                      xy=(x[i], y[i]),
 #                      xytext=(5, 2),
 #                      textcoords='offset points',
-#                      ha='right',
 #                      va='bottom')
 #     plt.show()
 
