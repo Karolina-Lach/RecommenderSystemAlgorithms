@@ -13,13 +13,16 @@ def get_rating_with_min_number(df, min_number_of_ratings, col_name='AuthorId'):
     '''
     Returns dataframe slice for users/recipes that have min number of ratings.
     '''
-    return df.groupby(col_name).filter(lambda x : len(x) > min_number_of_ratings).copy()
+    return df.groupby(col_name).filter(lambda x : len(x) >= min_number_of_ratings).copy()
 
 def get_ratings_with_min_number_list(df, min_number: list):
-    author_min = get_rating_with_min_number(df, min_number[0], col_name='AuthorId')
-    recipe_min = get_rating_with_min_number(df, min_number[1], col_name='RecipeId')
+    # author_min = get_rating_with_min_number(df, min_number[0], col_name='AuthorId')
+    # recipe_min = get_rating_with_min_number(df, min_number[1], col_name='RecipeId')
 
-    return author_min.merge(recipe_min, how='inner')
+    recipe_min = get_rating_with_min_number(df, min_number[1], col_name='RecipeId')
+    ratings_sample = get_rating_with_min_number(recipe_min, min_number[0], col_name='AuthorId')
+
+    return ratings_sample
 
 
 def get_sample_with_identical_proportions(df, n_samples, col_name='Rating', random_state_sample=13):

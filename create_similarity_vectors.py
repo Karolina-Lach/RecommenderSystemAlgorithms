@@ -30,7 +30,7 @@ def create_top_k_similar_vectors(vectors_dict, items_to_check_list, top_k=1, ver
     list_pos_to_recipe_id = {}
     recipe_id_to_list_pos = {}
     i = 0
-    for key in vectors.keys():
+    for key in vectors_dict.keys():
         list_pos_to_recipe_id[i] = key
         recipe_id_to_list_pos[key] = i
         i += 1
@@ -82,13 +82,13 @@ def create_similarity_matrix(vectors_dict, verbose=False):
     pos_to_recipe_id = {}
     recipe_id_to_pos = {}
     i = 0
-    for key in vectors.keys():
+    for key in vectors_dict.keys():
         pos_to_recipe_id[i] = key
         recipe_id_to_pos[key] = i
         i += 1
     
     # create list of vectors from dictionary
-    vectors = list(vectors.values())
+    vectors = list(vectors_dict.values())
     vectors = [np.array(x).ravel() for x in vectors]
 
     tensors = torch.tensor(np.array(vectors), dtype=torch.float)
@@ -96,13 +96,17 @@ def create_similarity_matrix(vectors_dict, verbose=False):
     size = len(vectors)
     similarities = np.zeros((size, size))
     for this_item in range(size):
-        if (this_item % 500 == 0 and verbose==True):
+        if (this_item % 250 == 0 and verbose==True):
             print(this_item, " of ", size)
         for other_item in range(this_item+1, size):
-            tensor1 = torch.tensor(vectors[this_item], dtype=torch.float)
-            tensor2 = torch.tensor(vectors[other_item], dtype=torch.float)
+#             tensor1 = torch.tensor(vectors[this_item], dtype=torch.float)
+#             tensor2 = torch.tensor(vectors[other_item], dtype=torch.float)
 
+
+            tensor1 = tensors[this_item]
+            tensor2 = tensors[other_item]
             sim = util.pytorch_cos_sim(tensor1, tensor2)[0][0].item()
+#             sim = cosine_similarity(vectors[this_item].reshape(-1, 1), vectors[other_item].reshape(-1, 1))[0][0]
             similarities[this_item, other_item] = sim
             similarities[other_item, this_item] = sim
             

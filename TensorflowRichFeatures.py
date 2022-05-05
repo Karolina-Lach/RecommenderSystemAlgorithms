@@ -57,18 +57,18 @@ class RecipeModel(tfrs.models.Model):
             print("RECIPE MODEL INIT")
         self.recipe_id_embedding = tf.keras.Sequential([
             tf.keras.layers.StringLookup(vocabulary=unique_recipe_ids, mask_token=None),
-            tf.keras.layers.Embedding(len(unique_recipe_ids)+1, 32)
+            tf.keras.layers.Embedding(len(unique_recipe_ids)+1, embedding_dim)
         ])
         
         self.ingredients_vectorizer = tf.keras.layers.TextVectorization(max_tokens = max_tokens)
         
         self.ingredients_text_embedding = tf.keras.Sequential([
             self.ingredients_vectorizer,
-            tf.keras.layers.Embedding(input_dim=max_tokens, output_dim=embedding_dim),
+            tf.keras.layers.Embedding(input_dim=max_tokens, output_dim=embedding_dim, mask_zero=True),
             tf.keras.layers.GlobalAveragePooling1D()
         ])
         
-        self.ingredients_vectorizer.adapt(recipes_dataset.map(lambda x: x['Ingredients']))
+        self.ingredients_vectorizer.adapt(recipes_dataset.map(lambda x: x['Ingredients_Category']))
         
     def call(self, inputs):
         if(self._verbose):
@@ -76,7 +76,7 @@ class RecipeModel(tfrs.models.Model):
             print("INPUTS: ", inputs)
         return tf.concat([
             self.recipe_id_embedding(inputs["RecipeId"]),
-            self.ingredients_text_embedding(inputs["Ingredients"])
+            self.ingredients_text_embedding(inputs["Ingredients_Category"])
         ], axis=1)
     
     
@@ -194,7 +194,7 @@ class CombinedModel(tfrs.models.Model):
         
         recipe_embeddings = self.candidate_model({
             "RecipeId": features["RecipeId"],
-            "Ingredients": features["Ingredients"]
+            "Ingredients_Category": features["Ingredients_Category"]
         })
         
         return self.task(

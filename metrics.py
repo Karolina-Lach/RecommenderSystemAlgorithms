@@ -1,17 +1,18 @@
 import pandas as pd
 from surprise import Dataset
 from surprise import accuracy
-from metrics import predictions_to_tuple_list
 from collections import defaultdict
 import math
+import numpy as np
+import itertools
 
 
 def predictions_to_dataframe(predictions):
     '''
     Creates dataframe from predictions with columns:("AuthorId", "RecipeId", "Ratings", "PredictedRating", "WasImpossible")
     '''
-    if (len(predicitions) > 0):
-        if (type(predicitions[0]) != tuple):
+    if (len(predictions) > 0):
+        if (type(predictions[0]) != tuple):
              predictions_tuple = predictions_to_tuple_list(predictions)
     pred_df = pd.DataFrame(predictions_tuple, columns=("AuthorId", "RecipeId", "Ratings", "PredictedRating", "WasImpossible"))
     pred_df['WasImpossible'] = pred_df['WasImpossible'].apply(lambda x: x['was_impossible'])
@@ -36,7 +37,7 @@ def get_top_n(predictions, n=10, min_rating=3.5):
     Result
     top_n (dictionary) - top n list for each user
     """
-    top_n = dict(list)
+    top_n = defaultdict(list)
     for uid, iid, r_ui, est, _ in predictions:
         if (est >= min_rating):
             top_n[uid].append((iid, r_ui, est))
@@ -56,7 +57,7 @@ def get_relevant_items_for_user(uid, ratings_df, min_rating=3.5):
     
     '''
     return ratings_df[(ratings_df['AuthorId']==uid) & (ratings_df['Rating']>=min_rating)]["RecipeId"].tolist()
-
+   
 
 def get_relevant_items(predictions, ratings_df, min_ratings=3.5):
     '''
@@ -72,7 +73,7 @@ def get_relevant_items(predictions, ratings_df, min_ratings=3.5):
     relevant_items = defaultdict(list)
     unique_users = set([uid for uid, iid, r_ui, est, _ in predictions])
     for uid in unique_users:
-        relevant_items[uid] = get_relevant_items_for_user(uid, ratings_df)
+        relevant_items[uid] = get_relevant_items_for_user(uid, ratings_df, min_rating=min_ratings)
     return relevant_items
 
 
@@ -97,7 +98,7 @@ def precision_per_user(recommendations_per_user: list, relevant_items_per_user: 
     Result
     precision - Precision for one user
     '''
-    recommended_and_relevant_items = [item for item in recommendations_per_user if item in relevant_items_per_user]
+    recommended_and_relevant_items = [item[0] for item in recommendations_per_user if item[0] in relevant_items_per_user]
     precision = len(recommended_and_relevant_items) / len(recommendations_per_user) if len(recommendations_per_user) != 0 else 0
     return precision
 
@@ -135,12 +136,12 @@ def recall_per_user(recommendations_per_user: list, relevant_items_per_user: lis
     Result
     recall - recall for one user
     '''
-    recommended_and_relevant_items = [item for item in recommendations_per_user if item in relevant_items_per_user]
+    recommended_and_relevant_items = [item[0] for item in recommendations_per_user if item[0] in relevant_items_per_user]
     recall = len(recommended_and_relevant_items) / len(relevant_items_per_user) if len(relevant_items_per_user) != 0 else 0
     return recall
 
 
-def recommender_recall_at_k(recommendations: dict, relevant_items: dict):
+def recommender_recall_at_k(recommendations: dict, relevant_items: dict, k=10):
     '''
     Calculates recalls across all users
     
@@ -153,7 +154,12 @@ def recommender_recall_at_k(recommendations: dict, relevant_items: dict):
     '''
     recalls = dict()
     for uid in recommendations.keys():
-        recalls[uid] = recall_per_user(recommendations[uid], relevant_items[uid])
+        if len(recommendations[uid]) > k:
+            recommended_items_for_user = recommendations[uid][:k]
+        else:
+            recommended_items_for_user = recommendations[uid]
+
+        recalls[uid] = recall_per_user(recommended_items_for_user, relevant_items[uid])
     return recalls
 
 
@@ -175,27 +181,27 @@ def average_precision_at_k(recommendations_per_user: list, relevant_items_per_us
     hits = 0.0
     precision_sum = 0.0
     for i, item in enumerate(recommendations_per_user):
-        if item in relevant_items_per_user:
+        if item[0] in relevant_items_per_user:
             hits += 1.0
             precision_sum += hits / (i + 1.0)
-    apk = precision_sum / min(len(recommendation_per_user), k)
+    apk = precision_sum / min(len(recommendations_per_user), k)
     return apk
 
 
-def recommender_map(recommendations: dict, relevant_items: dict):
+def recommender_map(recommendations: dict, relevant_items: dict, k: int):
     '''
     Calculates mean average precision for recommender system at k
     
     Parameters:
     recommendations (dict) - dictionary of recommendations for all users
     relevant_items (dict) - dictionary of relevant items for all users
-    
+    k - length of top k list
     Result:
     MAP@k
     '''
     apks = []
     for uid in recommendations.keys():
-        apks.append(average_precision_at_k(recommendations[uid], relvant_items[uid]))
+        apks.append(average_precision_at_k(recommendations[uid], relevant_items[uid], k=k))
     return np.mean(apks)
 
 
@@ -214,7 +220,7 @@ def hit_rate(recommendations: dict, left_out_predictions: list):
     total = 0
     for (left_out_user, left_out_item, rating) in left_out_predictions:
         hit = False
-        for item, _, est_rating in recommendations[uid]:
+        for item, _, est_rating in recommendations['uid']:
             if (left_out_item == item):
                 hit = True
                 break
@@ -238,7 +244,7 @@ def ARHR(recommendations: dict, left_out_predictions: list):
     for (left_out_user, left_out_item, rating) in left_out_predictions:
         rank = 0
         hit_rank = 0
-        for item, _, _ in recommendations[uid]:
+        for item, _, _ in recommendations['uid']:
             rank += 1
             if (left_out_item == item):
                 hit_rank = rank
@@ -360,4 +366,4 @@ def get_popularity_ranks(reviews_per_recipe):
 
 
 def is_item_relevant_for_user(item, user, relevant_items: dict):
-    return item in relevant_items[uid]
+    return item in relevant_items['uid']
