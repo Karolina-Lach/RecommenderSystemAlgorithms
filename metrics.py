@@ -5,7 +5,113 @@ from collections import defaultdict
 import math
 import numpy as np
 import itertools
+from collections import defaultdict
+import math
+import torch
 
+
+
+def diversity_vectors(top_n, matrix, recipe_id_to_pos, vectors):
+    '''
+    Calculates diversity of recommended items in top_n lists
+    
+    Parameters:
+    top_n (dict) - dictionary of predicted items for each user
+    item_vectors - 
+    '''
+    u = 0
+    n = 0
+    total = 0
+    for uid in top_n.keys():
+        pairs = itertools.combinations(top_n[uid], 2)
+#         if u % 250 == 0:
+#             print(u)
+        for pair in pairs:
+            item1 = pair[0]
+            item2 = pair[1]
+#             print(item1, item2)
+#             compute similarity between item1 & item2
+            if (item1 in recipe_id_to_pos.keys()) and (item2 in recipe_id_to_pos.keys()):
+                similarity = matrix[recipe_id_to_pos[item1]][recipe_id_to_pos[item2]]
+            else:
+                tensor1 = torch.tensor(np.array(vectors[item1]), dtype=torch.float)
+                tensor2 = torch.tensor(np.array(vectors[item2]), dtype=torch.float)
+                similarity = util.pytorch_cos_sim(tensor1, tensor2)[0][0].item()
+            
+            total += similarity
+            n += 1     
+        u += 1
+    
+    if n != 0:
+        total_similarity = total / n
+        diversity = 1 - total_similarity
+    else:
+        diversity = 0
+        
+    return diversity
+
+
+def diversity(top_n, matrix, recipe_id_to_pos):
+    '''
+    Calculates diversity of recommended items in top_n lists
+    
+    Parameters:
+    top_n (dict) - dictionary of predicted items for each user
+    item_vectors - 
+    '''
+    u = 0
+    n = 0
+    total = 0
+    for uid in top_n.keys():
+        pairs = itertools.combinations(top_n[uid], 2)
+#         if u % 250 == 0:
+#             print(u)
+        for pair in pairs:
+            item1 = pair[0]
+            item2 = pair[1]
+#             print(item1, item2)
+#             compute similarity between item1 & item2
+            if (item1 in recipe_id_to_pos.keys()) and (item2 in recipe_id_to_pos.keys()):
+                similarity = matrix[recipe_id_to_pos[item1]][recipe_id_to_pos[item2]]
+#             else:
+#                 tensor1 = torch.tensor(np.array(vectors[item1]), dtype=torch.float)
+#                 tensor2 = torch.tensor(np.array(vectors[item2]), dtype=torch.float)
+#                 similarity = util.pytorch_cos_sim(tensor1, tensor2)[0][0].item()
+            
+            total += similarity
+            n += 1     
+        u += 1
+    
+    if n != 0:
+        total_similarity = total / n
+        diversity = 1 - total_similarity
+    else:
+        diversity = 0
+        
+    return diversity
+
+
+def novelty(top_n, ratings_per_recipe):
+    '''
+    Calculates average popularity of recommended items in top_n lists across all users
+    
+    Parameters:
+    top_n (dict) - dictionary of predicted items for each user
+    ranking (dict) - popularity rank for each item
+    '''
+    
+    total = 0
+    n = 0
+    for uid in top_n.keys():
+        novelty_per_user = 0
+        k = 0
+        for iid in top_n[uid]:
+            novelty_per_user += math.log2(ratings_per_recipe[iid]/len(top_n.keys()))
+            k += 1
+            
+        total += -novelty_per_user/k
+        n += 1
+    return total / n
 
 def predictions_to_dataframe(predictions):
     '''
@@ -98,7 +204,7 @@ def precision_per_user(recommendations_per_user: list, relevant_items_per_user: 
     Result
     precision - Precision for one user
     '''
-    recommended_and_relevant_items = [item[0] for item in recommendations_per_user if item[0] in relevant_items_per_user]
+    recommended_and_relevant_items = [item for item in recommendations_per_user if item in relevant_items_per_user]
     precision = len(recommended_and_relevant_items) / len(recommendations_per_user) if len(recommendations_per_user) != 0 else 0
     return precision
 
@@ -136,7 +242,7 @@ def recall_per_user(recommendations_per_user: list, relevant_items_per_user: lis
     Result
     recall - recall for one user
     '''
-    recommended_and_relevant_items = [item[0] for item in recommendations_per_user if item[0] in relevant_items_per_user]
+    recommended_and_relevant_items = [item for item in recommendations_per_user if item in relevant_items_per_user]
     recall = len(recommended_and_relevant_items) / len(relevant_items_per_user) if len(relevant_items_per_user) != 0 else 0
     return recall
 
@@ -181,10 +287,12 @@ def average_precision_at_k(recommendations_per_user: list, relevant_items_per_us
     hits = 0.0
     precision_sum = 0.0
     for i, item in enumerate(recommendations_per_user):
-        if item[0] in relevant_items_per_user:
+        if item in relevant_items_per_user:
             hits += 1.0
             precision_sum += hits / (i + 1.0)
-    apk = precision_sum / min(len(recommendations_per_user), k)
+    
+#     apk = precision_sum / min(len(recommendations_per_user), k)
+    apk = precision_sum / len(relevant_items_per_user)
     return apk
 
 
@@ -205,7 +313,8 @@ def recommender_map(recommendations: dict, relevant_items: dict, k: int):
     return np.mean(apks)
 
 
-def hit_rate(recommendations: dict, left_out_predictions: list):
+
+def hit_rate(recommendations: dict, relevant: list):
     '''
     Calculates hit rate for all users - number of users with at least one good prediction in top_n divided by number of all users 
     
@@ -216,17 +325,25 @@ def hit_rate(recommendations: dict, left_out_predictions: list):
     Result:
     hit rate
     '''
+#     hits = 0
+#     total = 0
+#     for (left_out_user, left_out_item, rating) in left_out_predictions:
+#         hit = False
+#         for item, _, est_rating in recommendations['uid']:
+#             if (left_out_item == item):
+#                 hit = True
+#                 break
+#         if(hit):
+#             hits += 1
+#     return hits / len(left_out_predictions)
+
     hits = 0
-    total = 0
-    for (left_out_user, left_out_item, rating) in left_out_predictions:
-        hit = False
-        for item, _, est_rating in recommendations['uid']:
-            if (left_out_item == item):
-                hit = True
-                break
-        if(hit):
-            hits += 1
-    return hits / len(left_out_predictions)
+    for uid in recommendations.keys():
+        recommended = [x for x in recommendations[uid]][:k]
+        if len(set(recommended).intersection(relevant_items[uid])) > 0:
+            hits +=1
+            
+    return hits / len(recommendations.keys())
 
 
 def ARHR(recommendations: dict, left_out_predictions: list):
@@ -288,7 +405,7 @@ def item_coverage(top_n: dict, number_of_items: int, min_rating=3.5):
     items = []
     for value in top_n.values():
         for pairs in value:
-            items.append(pairs[0])
+            items.append(pairs)
     unique_items = set(items)
     return len(unique_items) / number_of_items
 

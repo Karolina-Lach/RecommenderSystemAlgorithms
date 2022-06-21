@@ -14,7 +14,7 @@ import pickle
 
 
 class RecipeRetrievalModel(tfrs.Model):
-    def __init__(self, unique_recipe_ids, unique_user_ids, embedding_dimension):
+    def __init__(self, unique_recipe_ids, unique_user_ids, embedding_dimension, recipes):
         super().__init__()
         self.recipe_model: tf.keras.Model = tf.keras.Sequential([
           tf.keras.layers.StringLookup(
@@ -27,7 +27,7 @@ class RecipeRetrievalModel(tfrs.Model):
         ])
         
         
-        metrics = tfrs.metrics.FactorizedTopK(candidates=recipes.batch(128).map(recipe_model))
+        metrics = tfrs.metrics.FactorizedTopK(candidates=recipes.batch(128).map(self.recipe_model))
         task = tfrs.tasks.Retrieval(metrics=metrics)
         self.task: tf.keras.layers.Layer = task
             

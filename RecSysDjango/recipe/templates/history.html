@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block content %}
+
+
+
+<br>
+<div class="col-12 center">
+  <h5 class="align-middle">Historia użytkownika: </h5>
+</div>
+
+<div class="row pb-3 backgroundWhite">
+{%  for id, name, image_to_show in recipes_list %}
+    <div class="col-lg-3 col-md-6 d-flex align-items-stretch">
+        <div class="row p-2">
+            <div class="col-12  p-1" style="border:1px solid #008cba; border-radius: 5px;">
+                <div class="card" style="border:0px;">
+
+                    <div class="thumbnail text-center">
+                        <img style="max-height:200px;max-width:250px;height:auto;width:auto;" class="rounded mx-auto d-block" height="200px" src="{{ image_to_show }}" />
+                    </div>
+                    <div class="pl-1">
+                        <p class="card-title h5 text-center pt-1 pb-0">{{ name }}</p>
+    <!--                    <p class="text-sm-center pt-0">Source: @Model.Source</p>-->
+                    </div>
+    <!--                <div style="padding-left:5px;" class="text-center">-->
+    <!--                    <p>-->
+    <!--                        Time: <b class="">@Model.PrepTimeDisplay</b>-->
+    <!--                        &nbsp; Servings: <b class="">@Model.Servings</b>-->
+    <!--                    </p>-->
+    <!--                </div>-->
+
+
+                    <div class="row">
+                        <div class="col" >
+                            <a class="btn btn-primary form-control" href="/details/{{ id }}">More...</a>
+                        </div>
+    <!--                    <div class="col col-md-auto" style="padding-left:2px">-->
+    <!--                        <partial name="_LikeButton" model="@new RecipeSearch.Models.ViewModels.LikeButtonVM(Model.RecipeId, Model.IsLiked)" />-->
+    <!--                    </div>-->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+</div>
+
+
+
+
+<!--    <h3>{{ title|capfirst }}</h3>-->
+<!--    <h1>Hello World</h1>-->
+<!--    {{ request.user.is_authenticated }}-->
+<!--    <p>This is a template</p>-->
+
+<!--    {{ my_html|safe}}-->
+<!--    <p>-->
+<!--        {{ my_text }}, {{ my_number }}-->
+<!--    </p>-->
+
+<!--<ul>-->
+<!--    {%  for my_sub_item in my_list %}-->
+<!--        {% if my_sub_item == 312 %}-->
+<!--            <li>{{ forloop.counter }} - {{my_sub_item|add:22}}</li>-->
+<!--        {% elif my_sub_item == "Abc" %}-->
+<!--            <li>This is not a network</li>-->
+<!--        {% else %}-->
+<!--            <li>{{forloop.counter }} - {{my_sub_item}}</li>-->
+<!--        {% endif %}-->
+<!--    {% endfor %}-->
+<!--</ul>-->
+
+{% endblock content %}
+

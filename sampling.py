@@ -1,5 +1,43 @@
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split as train_test_split
+from surprise import Dataset
+from surprise import Reader
+
+
+
+def create_train_test_dataframe(ratings_df, test_size, random_state):
+    x_train, x_test, y_train, y_test = train_test_split(ratings_df[["AuthorId", "RecipeId"]], 
+                                                        ratings_df[["Rating"]], 
+                                                        test_size=test_size, 
+                                                        random_state=random_state, 
+                                                        stratify=ratings_df["AuthorId"])
+    trainset = x_train.merge(y_train, left_index=True, right_index=True)
+    testset = x_test.merge(y_test, left_index=True, right_index=True)
+
+    return trainset, testset
+
+
+def train_test_surprise_format(trainset_df, testset_df):
+    trainset_surprise = Dataset.load_from_df(trainset_df[["AuthorId", "RecipeId", "Rating"]], Reader(rating_scale=(0, 5)))
+    trainset_surprise = trainset_surprise.build_full_trainset()
+
+    testset_surprise = list(testset_df.to_records())
+    testset_surprise = [(x[1], x[2], x[3]) for x in testset_surprise]
+    
+    return trainset_surprise, testset_surprise
+
+
+
+def create_sample_n_ratings_per_user(df, n=10):
+    return df.groupby('AuthorId', as_index = False, group_keys=False).apply(lambda s: s.sample(min(len(s), 10), replace=False))
+
+
+def create_sample_n_popular_users(df, n=2500):
+    sample = df.groupby(['AuthorId'], as_index = False, group_keys=False).size()
+    sample = sample.sort_values(by=['size'], ascending=False)[:n]
+    return df[df.AuthorId.isin(sample.AuthorId.unique())]
+
 
 def get_ratings_in_range(df, ratings, col_name='Rating'):
     '''

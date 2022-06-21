@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+
+    {% load static %}
+    <meta charset="utf-8" />
+    <link rel=”stylesheet” href="{% static 'css/site.css' %}">
+    <link rel="stylesheet" href="{% static 'lib/bootstrap/dist/css/bootstrap.css' %}"/>
+    <title>Django tutorial project</title>
+</head>
+<body>
+
+    {% include 'navbar.html' %}
+    <div class="container">
+        <main role="main" class="pb-3">
+            {% block content %}
+                    replace me
+            {% endblock %}
+</main>
+    </div>
+</body>
+</html>
